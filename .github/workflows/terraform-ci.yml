@@ -63,6 +63,11 @@ jobs:
 
       - name: Terraform Init
         run: |
+          # Initialize root module
+          echo "Initializing root module"
+          terraform init -backend=false
+          
+          # Initialize submodules
           for dir in modules/*/; do
             echo "Initializing $dir"
             terraform -chdir="$dir" init -backend=false
@@ -70,6 +75,11 @@ jobs:
 
       - name: Terraform Validate
         run: |
+          # Validate root module
+          echo "Validating root module"
+          terraform validate
+          
+          # Validate submodules
           for dir in modules/*/; do
             echo "Validating $dir"
             terraform -chdir="$dir" validate
@@ -117,7 +127,7 @@ jobs:
           github_token: ${{ github.token }}
 
       - name: Upload tfsec results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: tfsec-results
