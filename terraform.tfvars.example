@@ -1,0 +1,94 @@
+# Example Terraform variables for PHI S3 bucket deployment
+# Copy this file to terraform.tfvars and update with your values
+
+# Project configuration
+project_name = "healthcare-platform"
+environment  = "prod"
+
+# AWS regions
+aws_region         = "us-east-1"
+replication_region = "us-west-2"
+
+# Bucket configuration
+bucket_name = "my-org-phi-data"
+
+# Security settings
+enable_replication           = true
+enable_mfa_delete            = false  # Set to true in production with MFA device
+enable_transfer_acceleration = false
+
+# Access Points for different teams/applications
+access_point_configs = [
+  {
+    name   = "analytics-team"
+    vpc_id = "vpc-12345678"
+    policy = null  # Define specific policy as needed
+  },
+  {
+    name   = "etl-pipeline"
+    vpc_id = "vpc-87654321"
+    policy = null  # Define specific policy as needed
+  }
+]
+
+# Lifecycle rules for cost optimization
+lifecycle_rules = [
+  {
+    id                               = "archive-old-data"
+    enabled                          = true
+    transition_days                  = 90
+    transition_storage_class         = "GLACIER"
+    noncurrent_version_expiration_days = 730  # 2 years
+  },
+  {
+    id                     = "delete-incomplete-uploads"
+    enabled                = true
+    abort_incomplete_multipart_upload_days = 7
+  }
+]
+
+# Analytics configuration (optional)
+# analytics_configuration = {
+#   id            = "access-patterns"
+#   output_bucket = "my-analytics-results"
+#   output_prefix = "s3-analytics/"
+# }
+
+# Inventory configuration (optional)
+# inventory_configuration = {
+#   id                     = "weekly-inventory"
+#   output_bucket          = "my-inventory-bucket"
+#   output_prefix          = "inventory/"
+#   schedule_frequency     = "Weekly"
+#   output_format          = "CSV"
+# }
+
+# Event notifications (optional)
+# event_notification_configs = [
+#   {
+#     id            = "new-data-upload"
+#     events        = ["s3:ObjectCreated:*"]
+#     filter_prefix = "incoming/"
+#     filter_suffix = ".json"
+#   }
+# ]
+
+# Security and compliance services
+enable_security_hub = true
+enable_config       = true
+enable_guardduty    = true
+enable_macie        = true
+
+# Monitoring and alerting
+enable_sns_notifications = true
+notification_email       = "security-team@myorg.com"
+enable_cloudwatch_alarms = true
+
+# Resource tags
+tags = {
+  Owner        = "Healthcare Team"
+  CostCenter   = "IT-Security"
+  DataType     = "PHI"
+  Compliance   = "HIPAA"
+  ManagedBy    = "Terraform"
+}

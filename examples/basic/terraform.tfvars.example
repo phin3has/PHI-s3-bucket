@@ -1,0 +1,14 @@
+# Example variable values for basic PHI bucket deployment
+
+bucket_name        = "my-healthcare-phi-data"
+environment        = "prod"
+aws_region         = "us-east-1"
+replication_region = "us-west-2"
+notification_email = "security-team@healthcare.com"
+
+common_tags = {
+  Project     = "Healthcare Platform"
+  CostCenter  = "IT-Security"
+  Owner       = "DevOps Team"
+  Environment = "Production"
+}
