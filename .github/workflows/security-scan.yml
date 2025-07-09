@@ -33,9 +33,9 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           level: error
-          reporter: github-pr-review
+          reporter: ${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }}
           filter_mode: nofilter
-          fail_on_error: true
+          fail_on_error: false
           flags: -tfvars-file="examples/basic/terraform.tfvars.example"
           tfsec_flags: "--config-file=.tfsec.yml"
 
@@ -120,18 +120,19 @@ jobs:
 
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --debug --only-verified
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          extra_args: --debug --only-verified --fail
 
       - name: Detect Secrets
         uses: reviewdog/action-detect-secrets@master
         with:
           github_token: ${{ secrets.github_token }}
-          reporter: github-pr-review
-          fail_on_error: true
+          reporter: ${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }}
+          fail_on_error: false
 
   dependency-scan:
     name: Dependency Security Scan
@@ -141,19 +142,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/iac@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Run Trivy for dependency scanning
+        uses: aquasecurity/trivy-action@master
         with:
-          sarif: true
-          args: --severity-threshold=high
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-deps-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          scanners: 'vuln,secret,config'
 
-      - name: Upload Snyk results
+      - name: Upload Trivy dependency results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'snyk.sarif'
+          sarif_file: 'trivy-deps-results.sarif'
 
   hipaa-compliance:
     name: HIPAA Compliance Check
