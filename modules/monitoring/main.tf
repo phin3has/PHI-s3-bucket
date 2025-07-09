@@ -53,12 +53,35 @@ locals {
   )
 }
 
+# KMS key for SNS encryption (if not provided)
+resource "aws_kms_key" "sns" {
+  count = var.enable_sns_notifications && var.kms_key_arn == null ? 1 : 0
+
+  description              = "KMS key for ${var.bucket_name} SNS topic encryption"
+  deletion_window_in_days  = 30
+  enable_key_rotation      = true
+  
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-sns-kms-key"
+    }
+  )
+}
+
+resource "aws_kms_alias" "sns" {
+  count = var.enable_sns_notifications && var.kms_key_arn == null ? 1 : 0
+
+  name          = "alias/${var.bucket_name}-sns"
+  target_key_id = aws_kms_key.sns[0].key_id
+}
+
 # SNS Topic for security alerts
 resource "aws_sns_topic" "security_alerts" {
   count = var.enable_sns_notifications ? 1 : 0
 
   name              = "${var.bucket_name}-security-alerts"
-  kms_master_key_id = var.kms_key_arn != null ? var.kms_key_arn : "alias/aws/sns"
+  kms_master_key_id = var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.sns[0].arn
 
   tags = merge(
     local.common_tags,
@@ -455,6 +478,50 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cloudtrail" {
       kms_master_key_id = var.kms_key_arn
     }
   }
+}
+
+# Logging bucket for CloudTrail bucket access logs
+# checkov:skip=CKV_AWS_145:Encryption is configured in aws_s3_bucket_server_side_encryption_configuration resource
+# checkov:skip=CKV2_AWS_6:Public access block is configured in aws_s3_bucket_public_access_block resource
+# checkov:skip=CKV_AWS_18:This is the access logs bucket itself
+# checkov:skip=CKV2_AWS_61:Lifecycle not needed for access logs
+# checkov:skip=CKV2_AWS_62:Event notifications not needed for access logs
+resource "aws_s3_bucket" "cloudtrail_logs" {
+  bucket = "${var.bucket_name}-cloudtrail-access-logs"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-cloudtrail-access-logs"
+    }
+  )
+}
+
+resource "aws_s3_bucket_public_access_block" "cloudtrail_logs" {
+  bucket = aws_s3_bucket.cloudtrail_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "cloudtrail_logs" {
+  bucket = aws_s3_bucket.cloudtrail_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = var.kms_key_arn != null ? "aws:kms" : "AES256"
+      kms_master_key_id = var.kms_key_arn
+    }
+  }
+}
+
+resource "aws_s3_bucket_logging" "cloudtrail" {
+  bucket = aws_s3_bucket.cloudtrail.id
+
+  target_bucket = aws_s3_bucket.cloudtrail_logs.id
+  target_prefix = "cloudtrail-access-logs/"
 }
 
 resource "aws_s3_bucket_policy" "cloudtrail" {

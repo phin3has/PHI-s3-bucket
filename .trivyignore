@@ -9,6 +9,7 @@ AVD-AWS-0089
 # CloudWatch Logs integration for CloudTrail is optional
 # We're using S3 for log storage with encryption and access controls
 AVD-AWS-0043
+AVD-AWS-0162
 
 # Cross-region replication for log buckets is not required
 # Log buckets are for audit trails, not for high availability
