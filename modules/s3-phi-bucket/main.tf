@@ -17,6 +17,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 # S3 Bucket
+# checkov:skip=CKV_AWS_145:Encryption is configured in aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "phi_bucket" {
   bucket              = local.bucket_name
   object_lock_enabled = var.enable_object_lock
@@ -230,6 +231,7 @@ resource "aws_s3_bucket_object_lock_configuration" "phi_bucket" {
 }
 
 # Logging Bucket (for access logs)
+# checkov:skip=CKV_AWS_145:Encryption is configured in aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "log_bucket" {
   count = var.enable_access_logging ? 1 : 0
 

@@ -423,6 +423,7 @@ resource "aws_cloudtrail" "phi_bucket" {
 }
 
 # S3 bucket for CloudTrail logs
+# checkov:skip=CKV_AWS_145:Encryption is configured in aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "cloudtrail" {
   bucket = "${var.bucket_name}-cloudtrail-logs"
 

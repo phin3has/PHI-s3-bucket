@@ -97,6 +97,7 @@ resource "aws_securityhub_standards_subscription" "cis" {
 }
 
 # AWS Config Configuration
+# checkov:skip=CKV_AWS_145:Encryption is configured in aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "config" {
   count = var.enable_config ? 1 : 0
 

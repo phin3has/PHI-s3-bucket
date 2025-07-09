@@ -87,6 +87,7 @@ resource "aws_iam_role_policy" "replication" {
 # Provider aws.replica is passed from the parent module
 
 # Replica bucket
+# checkov:skip=CKV_AWS_145:Encryption is configured in aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "replica" {
   count    = var.enable_replication ? 1 : 0
   provider = aws.replica
