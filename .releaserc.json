@@ -3,17 +3,6 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
-    [
-      "@semantic-release/github",
-      {
-        "assets": [
-          {"path": "*.tf", "label": "Terraform files"},
-          {"path": "modules/**/*.tf", "label": "Module files"},
-          {"path": "examples/**/*.tf", "label": "Example files"},
-          {"path": "README.md", "label": "Documentation"},
-          {"path": ".terraform.lock.hcl", "label": "Lock file"}
-        ]
-      }
-    ]
+    "@semantic-release/github"
   ]
 }
