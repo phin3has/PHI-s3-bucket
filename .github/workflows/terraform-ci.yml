@@ -40,17 +40,6 @@ jobs:
           terraform fmt -check -recursive -diff
         continue-on-error: true
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: v${{ env.TFLINT_VERSION }}
-
-      - name: Initialize TFLint
-        run: tflint --init
-
-      - name: Run TFLint
-        run: tflint --recursive
-
       - name: Cache Terraform modules
         uses: actions/cache@v3
         with:
@@ -72,6 +61,17 @@ jobs:
             echo "Initializing $dir"
             terraform -chdir="$dir" init -backend=false
           done
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v${{ env.TFLINT_VERSION }}
+
+      - name: Initialize TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint --recursive
 
       - name: Terraform Validate
         run: |
