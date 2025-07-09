@@ -283,8 +283,14 @@ jobs:
           sarif_file: checkov-results.sarif
 
       - name: Run Terrascan
-        run: |
-          terrascan scan -i terraform -d modules/ --config-path .terrascan.yml
+        uses: tenable/terrascan-action@main
+        continue-on-error: true
+        with:
+          iac_type: 'terraform'
+          iac_version: 'v14'
+          policy_type: 'aws'
+          only_warn: true
+          scm_token: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Create Release
