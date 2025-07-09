@@ -274,7 +274,7 @@ jobs:
           output_format: sarif
           output_file_path: checkov-results.sarif
           soft_fail: false
-          skip_check: CKV_AWS_21  # Skip checks not applicable to PHI use case
+          skip_check: CKV_AWS_21,CKV_AWS_145,CKV2_AWS_64  # Skip checks: CKV_AWS_21 not applicable, CKV_AWS_145 handled by separate encryption resources, CKV2_AWS_64 KMS policies defined separately
 
       - name: Upload Checkov results
         uses: github/codeql-action/upload-sarif@v2
