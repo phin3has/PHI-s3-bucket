@@ -1,0 +1,70 @@
+# Dependabot configuration for automated dependency updates
+# This provides free, native GitHub dependency scanning and updates
+
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    assignees:
+      - "phin3has"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 5
+
+  # Enable version updates for Terraform
+  - package-ecosystem: "terraform"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    assignees:
+      - "phin3has"
+    labels:
+      - "dependencies"
+      - "terraform"
+    open-pull-requests-limit: 5
+
+  # Scan Terraform modules
+  - package-ecosystem: "terraform"
+    directory: "/modules/s3-phi-bucket"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "module"
+
+  - package-ecosystem: "terraform"
+    directory: "/modules/monitoring"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "module"
+
+  - package-ecosystem: "terraform"
+    directory: "/modules/security-hub"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "module"
+
+  # Scan examples
+  - package-ecosystem: "terraform"
+    directory: "/examples/basic"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "example"

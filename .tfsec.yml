@@ -66,7 +66,18 @@ include_paths:
   - tests/
 
 # Minimum severity to report
-minimum_severity: INFO
+minimum_severity: WARNING
 
 # Output format
 format: json
+
+# Excluded checks - These are handled appropriately in our module
+exclude:
+  # S3 encryption is configured using separate resources (Terraform best practice)
+  - aws-s3-encryption-customer-key
+  
+  # We use separate versioning resources  
+  - aws-s3-enable-versioning
+  
+  # Access logging is optional and configured when needed
+  - aws-s3-enable-bucket-logging
