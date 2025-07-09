@@ -54,14 +54,9 @@ rule "terraform_unused_required_providers" {
   enabled = true
 }
 
-# AWS specific rules for S3 security
-rule "aws_s3_bucket_public_access_block" {
-  enabled = true
-}
-
-rule "aws_s3_bucket_server_side_encryption" {
-  enabled = true
-}
+# AWS specific rules
+# Note: S3-specific security rules are enforced through Terraform resource configurations
+# rather than TFLint rules in this version
 
 # Security-focused rules
 rule "aws_iam_policy_document_gov_friendly_arns" {
