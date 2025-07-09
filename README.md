@@ -1,7 +1,7 @@
 # HIPAA-Compliant S3 Bucket Terraform Module
 
-[![Terraform CI](https://github.com/phin3has/repo/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/phin3has/repo/actions/workflows/terraform-ci.yml)
-[![Security Scan](https://github.com/phin3has/repo/actions/workflows/security-scan.yml/badge.svg)](https://github.com/phin3has/repo/actions/workflows/security-scan.yml)
+[![Terraform CI](https://github.com/phin3has/PHI-s3-bucket/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/phin3has/PHI-s3-bucket/actions/workflows/terraform-ci.yml)
+[![Security Scan](https://github.com/phin3has/PHI-s3-bucket/actions/workflows/security-scan.yml/badge.svg)](https://github.com/phin3has/PHI-s3-bucket/actions/workflows/security-scan.yml)
 [![HIPAA Compliant](https://img.shields.io/badge/HIPAA-Compliant-success)](https://github.com/phin3has/repo/blob/main/SECURITY.md)
 [![Terraform](https://img.shields.io/badge/terraform-v1.6.5-blue)](https://github.com/hashicorp/terraform)
 [![AWS Provider](https://img.shields.io/badge/AWS-v5.0+-orange)](https://registry.terraform.io/providers/hashicorp/aws/latest)
