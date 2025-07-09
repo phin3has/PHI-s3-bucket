@@ -1,0 +1,340 @@
+name: Terraform CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  TERRAFORM_VERSION: "1.6.5"
+  TFLINT_VERSION: "0.49.0"
+  TFSEC_VERSION: "1.28.4"
+  AWS_DEFAULT_REGION: "us-east-1"
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Format Check
+        id: fmt
+        run: |
+          terraform fmt -check -recursive -diff
+        continue-on-error: true
+
+      - name: Cache Terraform modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            .terraform
+            .terraform.lock.hcl
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
+
+      - name: Terraform Init
+        run: |
+          # Initialize root module
+          echo "Initializing root module"
+          terraform init -backend=false
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v${{ env.TFLINT_VERSION }}
+
+      - name: Initialize TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint --recursive --minimum-failure-severity=error
+
+      - name: Terraform Validate
+        run: |
+          # Validate root module (this will validate all modules in context)
+          echo "Validating root module and all referenced modules"
+          terraform validate
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && github.event.pull_request.number
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+              
+              <details><summary>Show Plan</summary>
+              
+              \`\`\`
+              Format check: ${{ steps.fmt.outcome }}
+              \`\`\`
+              
+              </details>
+              
+              *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            } catch (error) {
+              console.log('Unable to comment on PR:', error.message);
+            }
+
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          version: v${{ env.TFSEC_VERSION }}
+          soft_fail: false
+          config_file: .tfsec.yml
+          github_token: ${{ github.token }}
+
+      - name: Upload tfsec results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tfsec-results
+          path: tfsec-results.json
+
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Detect secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  documentation:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Render terraform docs
+        uses: terraform-docs/gh-actions@v1.0.0
+        with:
+          working-dir: ./modules/s3-phi-bucket
+          output-file: README.md
+          output-method: inject
+          git-push: "true"
+
+  test:
+    name: Terraform Test
+    runs-on: ubuntu-latest
+    needs: [validate, security]
+    continue-on-error: true
+    
+    strategy:
+      matrix:
+        test_dir:
+          - tests/basic_test.tf
+          - tests/compliance_test.tf
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Check for AWS Credentials
+        id: check_aws
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::warning::Skipping Terraform tests - AWS credentials not configured. Tests require AWS access to validate resources."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS Credentials
+        if: steps.check_aws.outputs.skip != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Run Terraform Test
+        if: steps.check_aws.outputs.skip != 'true'
+        run: |
+          terraform test -test-directory=${{ matrix.test_dir }}
+        continue-on-error: true
+
+      - name: Skip Message
+        if: steps.check_aws.outputs.skip == 'true'
+        run: |
+          echo "Tests skipped - AWS credentials not available"
+          echo "To run tests, configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets"
+
+  cost-estimation:
+    name: Cost Estimation
+    runs-on: ubuntu-latest
+    needs: validate
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Infracost API Key
+        id: check_infracost
+        run: |
+          if [ -z "${{ secrets.INFRACOST_API_KEY }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::warning::Skipping cost estimation - INFRACOST_API_KEY not set. See https://www.infracost.io/docs/integrations/github_actions/ for setup instructions."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Infracost
+        if: steps.check_infracost.outputs.skip != 'true'
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost JSON
+        if: steps.check_infracost.outputs.skip != 'true'
+        run: |
+          infracost breakdown --path=examples/basic \
+            --format=json \
+            --out-file=/tmp/infracost-base.json
+
+      - name: Generate Infracost Report
+        if: steps.check_infracost.outputs.skip != 'true'
+        run: |
+          infracost output --path=/tmp/infracost-base.json --format=github-comment
+
+      - name: Post Infracost comment
+        if: github.event_name == 'pull_request' && steps.check_infracost.outputs.skip != 'true'
+        uses: infracost/actions/comment@v1
+        with:
+          path: /tmp/infracost-base.json
+          behavior: update
+
+  compliance-check:
+    name: Compliance Verification
+    runs-on: ubuntu-latest
+    needs: [validate, security]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install compliance tools
+        run: |
+          pip install checkov
+          pip install terrascan
+
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+          soft_fail: false
+          config_file: .checkov.yml
+
+      - name: Upload Checkov results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+
+      - name: Run Terrascan
+        uses: tenable/terrascan-action@main
+        continue-on-error: true
+        with:
+          iac_type: 'terraform'
+          iac_version: 'v14'
+          policy_type: 'aws'
+          only_warn: true
+          scm_token: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [validate, security, test, compliance-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release
+          npm install -g @semantic-release/git
+          npm install -g @semantic-release/changelog
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release

@@ -1,0 +1,209 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.tf'
+      - '.github/workflows/security-scan.yml'
+
+env:
+  AWS_DEFAULT_REGION: us-east-1
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  tfsec:
+    name: TFSec Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec with reviewdog
+        uses: reviewdog/action-tfsec@master
+        with:
+          github_token: ${{ secrets.github_token }}
+          level: error
+          reporter: github-pr-review
+          filter_mode: nofilter
+          fail_on_error: true
+          flags: -tfvars-file="examples/basic/terraform.tfvars.example"
+          tfsec_flags: "--config-file=.tfsec.yml"
+
+  checkov:
+    name: Checkov Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          quiet: false
+          soft_fail: false
+          log_level: INFO
+          config_file: .checkov.yml
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+          download_external_modules: true
+
+      - name: Upload results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'checkov-results.sarif'
+
+  terrascan:
+    name: Terrascan Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Terrascan
+        uses: tenable/terrascan-action@main
+        with:
+          iac_type: 'terraform'
+          iac_version: 'v14'
+          policy_type: 'aws'
+          only_warn: false
+          sarif_upload: true
+          scm_token: ${{ secrets.GITHUB_TOKEN }}
+
+  trivy:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy in IaC mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-iac-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '1'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-iac-results.sarif'
+
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: Detect Secrets
+        uses: reviewdog/action-detect-secrets@master
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          fail_on_error: true
+
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/iac@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          sarif: true
+          args: --severity-threshold=high
+
+      - name: Upload Snyk results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'snyk.sarif'
+
+  hipaa-compliance:
+    name: HIPAA Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install compliance tools
+        run: |
+          pip install pyyaml
+          pip install jsonschema
+
+      - name: Validate HIPAA compliance
+        run: |
+          python scripts/hipaa-compliance-check.py
+
+      - name: Generate compliance report
+        run: |
+          python scripts/generate-compliance-report.py > compliance-report.md
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hipaa-compliance-report
+          path: compliance-report.md
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [tfsec, checkov, terrascan, trivy, secrets-scan, dependency-scan, hipaa-compliance]
+    if: always()
+    
+    steps:
+      - name: Create security summary
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tool | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| TFSec | ${{ needs.tfsec.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checkov | ${{ needs.checkov.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Terrascan | ${{ needs.terrascan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy | ${{ needs.trivy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets Scan | ${{ needs.secrets-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| HIPAA Compliance | ${{ needs.hipaa-compliance.result }} |" >> $GITHUB_STEP_SUMMARY

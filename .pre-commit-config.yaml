@@ -1,0 +1,139 @@
+repos:
+  # Terraform hooks
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.83.5
+    hooks:
+      - id: terraform_fmt
+        name: Terraform fmt
+        description: Rewrites Terraform configuration files to canonical format
+        
+      - id: terraform_validate
+        name: Terraform validate
+        description: Validates Terraform configuration files
+        
+      - id: terraform_docs
+        name: Terraform docs
+        description: Updates README.md with terraform-docs
+        args:
+          - --hook-config=--path-to-file=README.md
+          - --hook-config=--add-to-existing-file=true
+          - --hook-config=--create-file-if-not-exist=true
+          
+      - id: terraform_tflint
+        name: Terraform tflint
+        description: Lints Terraform code for errors and best practices
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+          
+      - id: terraform_tfsec
+        name: Terraform tfsec
+        description: Static analysis of Terraform for security issues
+        args:
+          - --args=--severity-override=high:error,medium:warning,low:info
+          - --args=--config-file=__GIT_WORKING_DIR__/.tfsec.yml
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        description: Detects high entropy strings and secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: .*\.lock\.json$
+
+  # AWS specific checks
+  - repo: https://github.com/aws-cloudformation/cfn-python-lint
+    rev: v0.83.3
+    hooks:
+      - id: cfn-python-lint
+        name: AWS CloudFormation Linter
+        files: \.(json|yml|yaml)$
+        exclude: .*(\.terraform|node_modules|\.git).*
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        name: Check YAML
+        exclude: .*\.terraform.*
+        
+      - id: check-json
+        name: Check JSON
+        
+      - id: check-merge-conflict
+        name: Check merge conflicts
+        
+      - id: check-case-conflict
+        name: Check case conflicts
+        
+      - id: detect-private-key
+        name: Detect private keys
+        
+      - id: detect-aws-credentials
+        name: Detect AWS credentials
+        args: [--allow-missing-credentials]
+        
+      - id: end-of-file-fixer
+        name: Fix end of files
+        exclude: .*\.tf$
+        
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        exclude: .*\.md$
+        
+      - id: mixed-line-ending
+        name: Mixed line ending
+        args: [--fix=lf]
+        
+      - id: check-added-large-files
+        name: Check large files
+        args: ['--maxkb=500']
+
+  # Markdown
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        name: Markdownlint
+        description: Lints markdown files
+        args: [--fix]
+        exclude: CHANGELOG.md
+
+  # YAML formatting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        name: yamllint
+        description: Lints YAML files
+        args: [-c=.yamllint.yml]
+        exclude: .*\.terraform.*
+
+  # Shell script analysis
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: Shellcheck
+        description: Static analysis tool for shell scripts
+
+  # Commit message
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      - id: gitlint
+        name: gitlint
+        description: Lints git commit messages
+        stages: [commit-msg]
+
+# Configuration
+default_language_version:
+  python: python3.11
+
+default_stages: [commit]
+
+fail_fast: false
+
+minimum_pre_commit_version: "2.20.0"
