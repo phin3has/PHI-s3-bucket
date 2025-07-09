@@ -8,6 +8,12 @@ variable "bucket_arn" {
   type        = string
 }
 
+variable "kms_key_arn" {
+  description = "ARN of the KMS key for encryption"
+  type        = string
+  default     = null
+}
+
 variable "environment" {
   description = "Environment name"
   type        = string
@@ -435,6 +441,17 @@ resource "aws_s3_bucket_public_access_block" "cloudtrail" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "cloudtrail" {
+  bucket = aws_s3_bucket.cloudtrail.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = var.kms_key_arn != null ? "aws:kms" : "AES256"
+      kms_master_key_id = var.kms_key_arn
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "cloudtrail" {

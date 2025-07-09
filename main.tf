@@ -118,6 +118,7 @@ module "monitoring" {
   
   bucket_name  = module.phi_s3_bucket.bucket_id
   bucket_arn   = module.phi_s3_bucket.bucket_arn
+  kms_key_arn  = module.phi_s3_bucket.kms_key_arn
   environment  = var.environment
   
   enable_sns_notifications = var.enable_sns_notifications
