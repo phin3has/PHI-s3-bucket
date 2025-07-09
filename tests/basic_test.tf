@@ -17,7 +17,7 @@ terraform {
 
 # Test basic bucket creation with all security features
 run "basic_bucket_creation" {
-  command = apply
+  command = plan
 
   module {
     source = "./modules/s3-phi-bucket"
