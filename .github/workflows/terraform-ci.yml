@@ -11,6 +11,11 @@ on:
       - develop
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 env:
   TERRAFORM_VERSION: "1.6.5"
   TFLINT_VERSION: "0.49.0"
@@ -136,22 +141,64 @@ jobs:
   documentation:
     name: Generate Documentation
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Render terraform docs
+      - name: Render terraform docs for s3-phi-bucket
         uses: terraform-docs/gh-actions@v1.0.0
         with:
           working-dir: ./modules/s3-phi-bucket
           output-file: README.md
           output-method: inject
-          git-push: "true"
+          git-push: "false"
+          
+      - name: Render terraform docs for monitoring
+        uses: terraform-docs/gh-actions@v1.0.0
+        with:
+          working-dir: ./modules/monitoring
+          output-file: README.md
+          output-method: inject
+          git-push: "false"
+          
+      - name: Render terraform docs for security-hub
+        uses: terraform-docs/gh-actions@v1.0.0
+        with:
+          working-dir: ./modules/security-hub
+          output-file: README.md
+          output-method: inject
+          git-push: "false"
+          
+      - name: Check for documentation changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create Pull Request
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "docs: update terraform documentation"
+          title: "docs: automated terraform documentation update"
+          body: |
+            ## Automated Terraform Documentation Update
+            
+            This PR updates the Terraform module documentation using terraform-docs.
+            
+            ### Changed files:
+            - Module README files have been regenerated
+            
+            Please review and merge if the changes look correct.
+          branch: docs/terraform-docs-update
+          delete-branch: true
 
   test:
     name: Terraform Test
