@@ -84,11 +84,7 @@ resource "aws_iam_role_policy" "replication" {
   })
 }
 
-# Provider for replication region
-provider "aws" {
-  alias  = "replica"
-  region = var.replication_region
-}
+# Provider aws.replica is passed from the parent module
 
 # Replica bucket
 resource "aws_s3_bucket" "replica" {
