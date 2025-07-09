@@ -14,7 +14,6 @@ on:
 env:
   TERRAFORM_VERSION: "1.6.5"
   TFLINT_VERSION: "0.49.0"
-  TFSEC_VERSION: "1.28.4"
   AWS_DEFAULT_REGION: "us-east-1"
 
 jobs:
@@ -111,22 +110,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          version: v${{ env.TFSEC_VERSION }}
-          soft_fail: false
-          config_file: .tfsec.yml
-          github_token: ${{ github.token }}
-
-      - name: Upload tfsec results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: tfsec-results
-          path: tfsec-results.json
-
-      - name: Run Trivy
+      - name: Run Trivy IaC Security Scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
