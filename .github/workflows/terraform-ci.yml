@@ -55,12 +55,6 @@ jobs:
           # Initialize root module
           echo "Initializing root module"
           terraform init -backend=false
-          
-          # Initialize submodules
-          for dir in modules/*/; do
-            echo "Initializing $dir"
-            terraform -chdir="$dir" init -backend=false
-          done
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
@@ -75,15 +69,9 @@ jobs:
 
       - name: Terraform Validate
         run: |
-          # Validate root module
-          echo "Validating root module"
+          # Validate root module (this will validate all modules in context)
+          echo "Validating root module and all referenced modules"
           terraform validate
-          
-          # Validate submodules
-          for dir in modules/*/; do
-            echo "Validating $dir"
-            terraform -chdir="$dir" validate
-          done
 
       - name: Comment PR
         uses: actions/github-script@v7
