@@ -159,6 +159,53 @@ resource "aws_kms_alias" "replica" {
   target_key_id = aws_kms_key.replica[0].key_id
 }
 
+# KMS Key Policy for replica
+resource "aws_kms_key_policy" "replica" {
+  count    = var.enable_replication && var.sse_algorithm == "aws:kms" && var.kms_key_arn == null ? 1 : 0
+  provider = aws.replica
+
+  key_id = aws_kms_key.replica[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Id      = "key-policy-${local.bucket_name}-replica"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow S3 to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow S3 replication to use the key"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.replication[0].arn
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Replica bucket encryption
 resource "aws_s3_bucket_server_side_encryption_configuration" "replica" {
   count    = var.enable_replication ? 1 : 0
