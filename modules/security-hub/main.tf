@@ -135,6 +135,16 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "config" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "config" {
+  count = var.enable_config ? 1 : 0
+
+  bucket = aws_s3_bucket.config[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_policy" "config" {
   count = var.enable_config ? 1 : 0
 

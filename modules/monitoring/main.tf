@@ -58,7 +58,7 @@ resource "aws_sns_topic" "security_alerts" {
   count = var.enable_sns_notifications ? 1 : 0
 
   name              = "${var.bucket_name}-security-alerts"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = var.kms_key_arn != null ? var.kms_key_arn : "alias/aws/sns"
 
   tags = merge(
     local.common_tags,
@@ -403,6 +403,8 @@ resource "aws_cloudtrail" "phi_bucket" {
   include_global_service_events = true
   is_multi_region_trail        = true
   enable_logging               = true
+  enable_log_file_validation   = true
+  kms_key_id                   = var.kms_key_arn
 
   event_selector {
     read_write_type           = "All"

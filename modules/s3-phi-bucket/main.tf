@@ -266,7 +266,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "log_bucket" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = var.sse_algorithm == "aws:kms" ? "aws:kms" : "AES256"
+      kms_master_key_id = var.sse_algorithm == "aws:kms" ? (var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.phi_bucket[0].arn) : null
     }
   }
 }

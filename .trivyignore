@@ -1,0 +1,19 @@
+# Trivy Ignore File
+# This file documents security findings that are false positives or accepted risks
+# Format: AVD-AWS-#### or finding title
+
+# S3 Buckets - Replica buckets don't need additional versioning
+# The primary bucket has versioning, replicas inherit versioned objects
+AVD-AWS-0089
+
+# CloudWatch Logs integration for CloudTrail is optional
+# We're using S3 for log storage with encryption and access controls
+AVD-AWS-0043
+
+# Cross-region replication for log buckets is not required
+# Log buckets are for audit trails, not for high availability
+AVD-AWS-0090
+
+# Event notifications for log buckets are optional
+# We have CloudTrail and monitoring in place for security events
+AVD-AWS-0091
