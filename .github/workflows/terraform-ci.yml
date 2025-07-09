@@ -260,7 +260,7 @@ jobs:
 
       - name: Post Infracost comment
         if: github.event_name == 'pull_request' && steps.check_infracost.outputs.skip != 'true'
-        uses: infracost/actions/comment@v1
+        uses: infracost/actions/comment@v3
         with:
           path: /tmp/infracost-base.json
           behavior: update
