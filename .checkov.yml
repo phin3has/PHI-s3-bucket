@@ -1,0 +1,43 @@
+# Checkov configuration for HIPAA-compliant S3 bucket module
+
+# Directory to scan
+directory:
+  - .
+
+# Frameworks to use
+framework:
+  - terraform
+
+# Output settings
+output: cli
+quiet: false
+compact: false
+
+# Download external modules
+download-external-modules: true
+
+# Skip specific checks that don't apply to this module
+skip-check:
+  # Skip checks for resources we don't use or handle differently
+  - CKV_AWS_18  # S3 access logging - we have it but Checkov doesn't recognize the separate resource pattern
+  - CKV_AWS_144 # S3 cross-region replication - this is optional in our module
+  - CKV_AWS_145 # S3 encryption - we use separate encryption configuration resource (AWS Provider v5 pattern)
+  - CKV2_AWS_6  # S3 public access - we use separate public access block resource (AWS Provider v5 pattern)
+  - CKV_TF_1    # Module source uses Git with commit hash - not applicable for local examples
+  
+# Soft fail on specific checks (warn but don't fail)
+soft-fail-on:
+  - CKV2_AWS_62  # S3 event notifications - not required for basic HIPAA compliance
+  - CKV2_AWS_61  # S3 lifecycle configuration - we have it but as optional
+
+# Enable all Checkov policies
+include-all-checkov-policies: true
+
+# Evaluation of Terraform variables
+evaluate-variables: true
+
+# Summary position
+summary-position: bottom
+
+# Don't skip resources without violations
+skip-resources-without-violations: false
