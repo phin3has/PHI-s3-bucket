@@ -96,6 +96,7 @@ data "aws_iam_policy_document" "replication" {
 }
 
 # Replica bucket in different region
+# checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "replica" {
   count    = var.enable_replication ? 1 : 0
   provider = aws.replica
@@ -143,7 +144,7 @@ resource "aws_kms_key" "replica" {
 
   description             = "KMS key for ${var.bucket_name} replica encryption"
   deletion_window_in_days = 30
-  enable_key_rotation     = true
+  enable_key_rotation = true
   
   tags = merge(
     local.common_tags,

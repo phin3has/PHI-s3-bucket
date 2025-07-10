@@ -1,3 +1,7 @@
+# NOTE: S3 bucket security configurations (encryption, public access blocks, logging) are in main.tf
+# checkov:skip=CKV_AWS_145:Encryption is configured in main.tf
+# checkov:skip=CKV2_AWS_6:Public access blocks are configured in main.tf
+
 output "bucket_id" {
   description = "The name of the S3 bucket"
   value       = aws_s3_bucket.main.id

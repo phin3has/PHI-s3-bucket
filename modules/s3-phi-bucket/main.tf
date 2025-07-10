@@ -15,7 +15,7 @@ resource "aws_kms_key" "bucket" {
 
   description             = "KMS key for ${var.bucket_name} encryption"
   deletion_window_in_days = 30
-  enable_key_rotation     = true
+  enable_key_rotation = true
   
   tags = merge(
     local.common_tags,
@@ -33,6 +33,7 @@ resource "aws_kms_alias" "bucket" {
 }
 
 # Main S3 bucket
+# checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "main" {
   bucket = var.bucket_name
   
@@ -114,17 +115,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
     }
 
     noncurrent_version_transition {
-      days          = 30
-      storage_class = "STANDARD_IA"
+      noncurrent_days = 30
+      storage_class   = "STANDARD_IA"
     }
 
     noncurrent_version_expiration {
-      days = 365
+      noncurrent_days = 365
     }
   }
 }
 
 # Access logging bucket
+# checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-logs"
   
@@ -162,6 +164,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
   rule {
     id     = "expire-logs"
     status = "Enabled"
+    
+    filter {}
 
     expiration {
       days = 90
