@@ -10,10 +10,12 @@ import json
 def generate_report():
     """Generate a comprehensive HIPAA compliance report"""
     
-    report = f"""# HIPAA Compliance Report
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    
+    report = """# HIPAA Compliance Report
 
 **Module**: Secure S3 Bucket Terraform Module  
-**Date**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}  
+**Date**: """ + current_date + """  
 **Version**: 1.0.0
 
 ## Executive Summary
