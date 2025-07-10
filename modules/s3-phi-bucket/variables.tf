@@ -21,9 +21,9 @@ variable "trusted_principal_arns" {
 }
 
 variable "enable_replication" {
-  description = "Enable cross-region replication"
+  description = "Enable cross-region replication (requires aws.replica provider)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "replication_region" {
