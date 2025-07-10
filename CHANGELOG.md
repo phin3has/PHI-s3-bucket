@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/phin3has/PHI-s3-bucket/compare/v1.2.2...v1.2.3) (2025-07-10)
+
+
+### Bug Fixes
+
+* fix f-string syntax error in compliance report generator ([83b325d](https://github.com/phin3has/PHI-s3-bucket/commit/83b325d01909829bc0962a56a14f16f31cc03e05))
+
 ## [1.2.2](https://github.com/phin3has/PHI-s3-bucket/compare/v1.2.1...v1.2.2) (2025-07-10)
 
 
