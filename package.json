@@ -1,0 +1,24 @@
+{
+  "name": "terraform-aws-s3-bucket-hipaa",
+  "version": "1.0.0",
+  "description": "HIPAA-compliant S3 bucket Terraform module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phin3has/PHI-s3-bucket.git"
+  },
+  "keywords": [
+    "terraform",
+    "aws",
+    "s3",
+    "hipaa",
+    "compliance",
+    "security"
+  ],
+  "author": "phin3has",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/phin3has/PHI-s3-bucket/issues"
+  },
+  "homepage": "https://github.com/phin3has/PHI-s3-bucket#readme",
+  "private": true
+}
