@@ -1,5 +1,0 @@
-# Checkov configuration for examples
-# Examples use local paths for testing
-
-skip-check:
-  - CKV_TF_1  # Module sources don't need commit hashes in examples

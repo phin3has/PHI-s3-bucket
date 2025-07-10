@@ -25,12 +25,10 @@ This module implements the following security requirements:
 
 ```hcl
 module "secure_bucket" {
-  # Use a specific commit hash for production
-  source = "github.com/phin3has/PHI-s3-bucket?ref=4727688"
+  source = "github.com/phin3has/PHI-s3-bucket"
   
-  bucket_name    = "my-secure-data-bucket"
-  environment    = "prod"
-  aws_region     = "us-east-1"
+  bucket_name = "my-secure-data-bucket"
+  environment = "prod"
   
   # Specify trusted IAM principals
   trusted_principal_arns = [
@@ -46,6 +44,11 @@ module "secure_bucket" {
     Project    = "DataLake"
     CostCenter = "Engineering"
   }
+  
+  providers = {
+    aws         = aws
+    aws.replica = aws.replica
+  }
 }
 ```
 
@@ -53,8 +56,7 @@ module "secure_bucket" {
 
 ```hcl
 module "secure_bucket" {
-  # Use a specific commit hash for production
-  source = "github.com/phin3has/PHI-s3-bucket?ref=4727688"
+  source = "github.com/phin3has/PHI-s3-bucket"
   
   bucket_name = "my-secure-bucket"
   environment = "prod"
@@ -65,6 +67,11 @@ module "secure_bucket" {
   trusted_principal_arns = [
     "arn:aws:iam::123456789012:role/ApplicationRole"
   ]
+  
+  providers = {
+    aws         = aws
+    aws.replica = aws.replica
+  }
 }
 ```
 
@@ -72,8 +79,7 @@ module "secure_bucket" {
 
 ```hcl
 module "secure_bucket" {
-  # Use a specific commit hash for production
-  source = "github.com/phin3has/PHI-s3-bucket?ref=4727688"
+  source = "github.com/phin3has/PHI-s3-bucket"
   
   bucket_name = "compliance-data-bucket"
   environment = "prod"
@@ -86,6 +92,11 @@ module "secure_bucket" {
   trusted_principal_arns = [
     "arn:aws:iam::123456789012:role/ComplianceRole"
   ]
+  
+  providers = {
+    aws         = aws
+    aws.replica = aws.replica
+  }
 }
 ```
 
@@ -113,16 +124,28 @@ provider "aws" {
 
 Both providers must be passed to the module, even if replication is disabled:
 
+```hcl
+module "secure_bucket" {
+  source = "./path/to/module"
+  
+  # ... other configuration ...
+  
+  providers = {
+    aws         = aws
+    aws.replica = aws.replica
+  }
+}
+```
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | bucket_name | The name of the S3 bucket | `string` | n/a | yes |
 | environment | Environment name (dev, staging, prod) | `string` | n/a | yes |
-| aws_region | AWS region for the primary bucket | `string` | `"us-east-1"` | no |
 | kms_key_arn | ARN of existing KMS key. If not provided, creates a new key | `string` | `null` | no |
 | trusted_principal_arns | List of IAM principal ARNs that should have access | `list(string)` | `[]` | no |
-| enable_replication | Enable cross-region replication | `bool` | `true` | no |
+| enable_replication | Enable cross-region replication | `bool` | `false` | no |
 | replication_region | AWS region for the replica bucket | `string` | `"us-west-2"` | no |
 | enable_object_lock | Enable S3 Object Lock for immutability | `bool` | `false` | no |
 | object_lock_mode | Object Lock mode (GOVERNANCE or COMPLIANCE) | `string` | `"GOVERNANCE"` | no |
@@ -172,11 +195,8 @@ This module is designed to meet common compliance requirements including:
 
 ## Examples
 
-See the [examples](./examples) directory for complete examples:
+See the [examples](./examples) directory for a complete example:
 - [Basic Usage](./examples/basic)
-- [Data Analytics](./examples/analytics)
-- [Backup and Archive](./examples/backup-archive)
-- [Data Lake](./examples/data-lake)
 
 ## Development
 

@@ -69,9 +69,9 @@ This module is designed for storing Protected Health Information (PHI) in compli
 
 ### Monitoring
 
-- **CloudTrail**: All API calls are logged
-- **EventBridge**: Real-time alerts for security events
-- **Security Hub**: Continuous compliance monitoring
+- **CloudTrail**: All API calls should be logged by the AWS account
+- **Access Logging**: S3 access logs are stored in a separate bucket
+- **Bucket Metrics**: Monitor via CloudWatch metrics
 
 ### Data Protection
 
@@ -91,23 +91,23 @@ This module is designed for storing Protected Health Information (PHI) in compli
 ### 2. Deployment
 
 - [ ] Use a secure backend for Terraform state (encrypted S3 + DynamoDB)
-- [ ] Enable detailed CloudTrail logging
-- [ ] Configure Security Hub for compliance monitoring
-- [ ] Set up SNS notifications for security events
+- [ ] Enable detailed CloudTrail logging in your AWS account
+- [ ] Configure AWS Config rules for compliance monitoring
+- [ ] Set up CloudWatch alarms for security events
 
 ### 3. Post-deployment
 
 - [ ] Regular security audits (monthly)
-- [ ] Review access logs and patterns
+- [ ] Review S3 access logs and patterns
 - [ ] Update to latest module versions
-- [ ] Monitor Security Hub findings
+- [ ] Monitor AWS Config compliance
 - [ ] Test disaster recovery procedures
 
 ### 4. Incident Response
 
-1. **Detect**: Monitor CloudWatch alarms and Security Hub findings
-2. **Contain**: Use S3 Access Points to quickly revoke access
-3. **Investigate**: Review CloudTrail logs and access patterns
+1. **Detect**: Monitor CloudWatch alarms and AWS Config rules
+2. **Contain**: Update bucket policies or IAM policies to revoke access
+3. **Investigate**: Review CloudTrail logs and S3 access logs
 4. **Remediate**: Apply patches and update configurations
 5. **Document**: Record lessons learned and update procedures
 
@@ -118,9 +118,9 @@ This module implements controls for the following compliance frameworks:
 ### HIPAA Security Rule
 
 - **Administrative Safeguards** (45 CFR §164.308)
-  - Access management through IAM and S3 Access Points
-  - Security incident procedures via EventBridge
-  - Contingency plan through replication
+  - Access management through IAM and bucket policies
+  - Security incident procedures via CloudWatch monitoring
+  - Contingency plan through optional replication
 
 - **Physical Safeguards** (45 CFR §164.310)
   - AWS handles physical security of data centers
@@ -156,22 +156,24 @@ pre-commit run --all-files
 ### Security Scanning
 
 ```bash
-# TFSec
-tfsec . --config-file=.tfsec.yml
+# Trivy
+trivy config .
 
 # Checkov
 checkov -d . --framework terraform
 
-# Terrascan
-terrascan scan -i terraform -d modules/
+# TruffleHog (for secrets)
+trufflehog filesystem .
 ```
 
 ### Continuous Monitoring
 
-- **AWS Security Hub**: Aggregates findings from multiple services
+While this module focuses on the core S3 bucket security, we recommend implementing the following monitoring services in your AWS account:
+
+- **AWS Config**: Compliance rule evaluation for S3 configurations
 - **Amazon GuardDuty**: Threat detection for S3
 - **Amazon Macie**: PHI discovery and classification
-- **AWS Config**: Compliance rule evaluation
+- **CloudWatch**: Metrics and alarms for bucket activity
 
 ## Security Contacts
 
