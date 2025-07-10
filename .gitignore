@@ -11,6 +11,7 @@ override.tf.json
 *_override.tf.json
 crash.log
 crash.*.log
+providers_temp.tf
 
 # OS
 .DS_Store

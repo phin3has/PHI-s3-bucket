@@ -74,9 +74,33 @@ jobs:
 
       - name: Terraform Validate
         run: |
-          # Validate root module (this will validate all modules in context)
+          # Create temporary provider configuration for validation
+          cat > providers_temp.tf << 'EOF'
+          provider "aws" {
+            region = "us-east-1"
+            skip_credentials_validation = true
+            skip_requesting_account_id  = true
+            skip_metadata_api_check     = true
+          }
+          
+          provider "aws" {
+            alias  = "replica"
+            region = "us-west-2"
+            skip_credentials_validation = true
+            skip_requesting_account_id  = true
+            skip_metadata_api_check     = true
+          }
+          EOF
+          
+          # Re-initialize with provider configuration
+          terraform init -backend=false
+          
+          # Validate root module
           echo "Validating root module and all referenced modules"
           terraform validate
+          
+          # Clean up temporary file
+          rm -f providers_temp.tf
 
       - name: Comment PR
         uses: actions/github-script@v7
