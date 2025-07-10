@@ -27,8 +27,6 @@ skip-check:
   
 # Soft fail on specific checks (warn but don't fail)
 soft-fail-on:
-  - CKV2_AWS_62  # S3 event notifications - not required for basic HIPAA compliance
-  - CKV2_AWS_61  # S3 lifecycle configuration - we have it but as optional
 
 # Enable all Checkov policies
 include-all-checkov-policies: true

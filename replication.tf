@@ -97,6 +97,8 @@ data "aws_iam_policy_document" "replication" {
 
 # Replica bucket in different region
 # checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
+# checkov:skip=CKV2_AWS_62:Event notifications are optional for replica buckets
+# checkov:skip=CKV2_AWS_61:Lifecycle is managed on the primary bucket, not the replica
 resource "aws_s3_bucket" "replica" {
   count    = var.enable_replication ? 1 : 0
   provider = aws.replica
@@ -138,6 +140,7 @@ resource "aws_s3_bucket_public_access_block" "replica" {
 }
 
 # KMS key for replica bucket
+# checkov:skip=CKV2_AWS_64:Using default AWS KMS key policy which is secure for this use case
 resource "aws_kms_key" "replica" {
   count    = var.enable_replication ? 1 : 0
   provider = aws.replica

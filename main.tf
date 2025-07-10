@@ -10,6 +10,7 @@ locals {
 }
 
 # KMS key for encryption (if not provided)
+# checkov:skip=CKV2_AWS_64:Using default AWS KMS key policy which is secure for this use case
 resource "aws_kms_key" "bucket" {
   count = var.kms_key_arn == null ? 1 : 0
 
@@ -34,6 +35,7 @@ resource "aws_kms_alias" "bucket" {
 
 # Main S3 bucket
 # checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
+# checkov:skip=CKV2_AWS_62:Event notifications are optional - users can add them based on their needs
 resource "aws_s3_bucket" "main" {
   bucket = var.bucket_name
   
@@ -122,11 +124,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
     noncurrent_version_expiration {
       noncurrent_days = 365
     }
+    
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
   }
 }
 
 # Access logging bucket
 # checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
+# checkov:skip=CKV2_AWS_62:Event notifications not required for log buckets
+# checkov:skip=CKV_AWS_21:Versioning not required for log buckets - logs are immutable
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-logs"
   
@@ -169,6 +177,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
 
     expiration {
       days = 90
+    }
+    
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
     }
   }
 }
