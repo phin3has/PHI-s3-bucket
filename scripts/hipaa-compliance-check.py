@@ -24,8 +24,8 @@ class HIPAAComplianceChecker:
             
         filename = os.path.basename(filepath)
         
-        # Check for encryption
-        if 'aws_s3_bucket' in content:
+        # Check for encryption (only for actual bucket resources)
+        if 'resource "aws_s3_bucket"' in content or 'aws_s3_bucket_server_side_encryption_configuration' in content:
             self.check_s3_encryption(content, filename)
             self.check_s3_versioning(content, filename)
             self.check_s3_access_logging(content, filename)
@@ -34,8 +34,8 @@ class HIPAAComplianceChecker:
         if 'aws_kms_key' in content:
             self.check_kms_rotation(content, filename)
             
-        # Check for public access blocks
-        if 'aws_s3_bucket_public_access_block' in content:
+        # Check for public access blocks (but not in depends_on)
+        if 'resource "aws_s3_bucket_public_access_block"' in content:
             self.check_public_access_block(content, filename)
             
         # Check for CloudTrail
@@ -69,7 +69,7 @@ class HIPAAComplianceChecker:
         """Verify S3 buckets have access logging configured"""
         if 'aws_s3_bucket_logging' in content:
             self.passed_checks.append(f"{filename}: S3 access logging configured")
-        elif 'aws_s3_bucket' in content and 'log' not in filename.lower():
+        elif 'resource "aws_s3_bucket"' in content and 'log' not in filename.lower():
             self.warnings.append(f"{filename}: Consider enabling S3 access logging")
             
     def check_kms_rotation(self, content, filename):
