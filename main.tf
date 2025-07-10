@@ -1,108 +1,128 @@
-# Secure S3 Bucket Terraform Module
-# This module creates a secure S3 bucket with HIPAA-compliant settings
+# main.tf - Simple PHI S3 Bucket Configuration for MVP
+# Using PHI-s3-bucket module v1.1.1
 
+# Configure the AWS Provider
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.5.0"
   
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0"
+      version = "~> 5.0"
     }
+  }
+  
+  # Backend configuration for remote state storage
+  backend "s3" {
+    bucket = "mvp-phi-storage-terraform-state"
+    key    = "phi-s3-bucket/terraform.tfstate"
+    region = "us-east-1"  # Update this to match your bucket's region
+    
+    # Optional but recommended for state locking
+    # dynamodb_table = "terraform-state-lock"
+    
+    # Enable encryption
+    encrypt = true
   }
 }
 
-# Primary AWS provider
+# Configure AWS Provider with your region
 provider "aws" {
   region = var.aws_region
+}
+
+# Variables for customization
+variable "aws_region" {
+  description = "AWS region for the S3 bucket"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "environment" {
+  description = "Environment name (e.g., dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
+variable "project_name" {
+  description = "Project name for tagging and naming"
+  type        = string
+  default     = "mvp-healthcare"
+}
+
+variable "notification_email" {
+  description = "Email for security notifications"
+  type        = string
+  default     = "security@example.com"
+}
+
+# Local values for consistent naming
+locals {
+  bucket_name = "${var.project_name}-${var.environment}-phi-data"
   
-  default_tags {
-    tags = {
-      Module      = "secure-s3-bucket"
-      ManagedBy   = "Terraform"
-      Environment = var.environment
-      Project     = var.project_name
-    }
+  common_tags = {
+    Environment           = var.environment
+    Project              = var.project_name
+    ManagedBy            = "Terraform"
+    Purpose              = "PHI-Data-Storage"
+    DataClassification   = "PHI"
   }
 }
 
-# Provider for replication region
-provider "aws" {
-  alias  = "replica"
-  region = var.replication_region
+# PHI S3 Bucket Module - Basic Configuration
+module "phi_bucket" {
+  source = "github.com/phin3has/PHI-s3-bucket//modules/s3-phi-bucket?ref=v1.1.2"
   
-  default_tags {
-    tags = {
-      Module      = "secure-s3-bucket"
-      ManagedBy   = "Terraform"
-      Environment = var.environment
-      Project     = var.project_name
-      Type        = "Replica"
-    }
-  }
-}
-
-# Main S3 bucket module
-module "secure_s3_bucket" {
-  source = "./modules/s3-phi-bucket"
+  # Required parameters
+  bucket_name        = local.bucket_name
+  environment        = var.environment
+  notification_email = var.notification_email
   
-  bucket_name                = var.bucket_name
-  environment                = var.environment
-  
-  # KMS encryption
-  kms_key_arn                = var.kms_key_arn
-  
-  # Trusted principals for bucket access
-  trusted_principal_arns     = var.trusted_principal_arns
-  
-  # Replication settings
-  enable_replication         = var.enable_replication
-  replication_region         = var.replication_region
-  
-  # Object Lock settings
-  enable_object_lock         = var.enable_object_lock
-  object_lock_mode           = var.object_lock_mode
-  object_lock_days           = var.object_lock_days
-  
-  # Lifecycle settings
-  enable_lifecycle_rules     = var.enable_lifecycle_rules
+  # Replication is now disabled by default (v1.1.2)
+  # No need to configure replica provider for MVP
   
   # Tags
-  tags = var.tags
-  
-  providers = {
-    aws         = aws
-    aws.replica = aws.replica
-  }
+  tags = local.common_tags
 }
 
-# Outputs
+# Outputs for reference
 output "bucket_id" {
-  description = "The name of the S3 bucket"
-  value       = module.secure_s3_bucket.bucket_id
+  description = "The ID of the PHI S3 bucket"
+  value       = try(module.phi_bucket.bucket_id, "Not available")
 }
 
 output "bucket_arn" {
-  description = "The ARN of the S3 bucket"
-  value       = module.secure_s3_bucket.bucket_arn
+  description = "The ARN of the PHI S3 bucket"
+  value       = try(module.phi_bucket.bucket_arn, "Not available")
 }
 
-output "kms_key_id" {
-  description = "The ID of the KMS key used for encryption"
-  value       = module.secure_s3_bucket.kms_key_id
+output "bucket_name" {
+  description = "The name of the PHI S3 bucket"
+  value       = local.bucket_name
 }
 
-output "kms_key_arn" {
-  description = "The ARN of the KMS key used for encryption"
-  value       = module.secure_s3_bucket.kms_key_arn
-}
+# Optional: README content
+output "next_steps" {
+  description = "Next steps for using the bucket"
+  value = <<EOF
+PHI S3 Bucket created successfully!
 
-output "replica_bucket_id" {
-  description = "The name of the replica S3 bucket (if replication is enabled)"
-  value       = try(module.secure_s3_bucket.replica_bucket_id, null)
-}
+Next steps:
+1. Update the notification_email to receive security alerts
+2. Configure IAM roles/users for bucket access
+3. Review the Security Hub findings for compliance
+4. Set up monitoring dashboards in CloudWatch
 
-output "replica_bucket_arn" {
-  description = "The ARN of the replica S3 bucket (if replication is enabled)"
-  value       = try(module.secure_s3_bucket.replica_bucket_arn, null)
+Important: This bucket is configured for PHI data storage with:
+- Encryption at rest (KMS)
+- Versioning enabled
+- Access logging
+- HIPAA compliance controls
+- Multi-region replication (if enabled in module)
+
+For production use, consider:
+- Enabling cross-region replication
+- Setting up S3 Access Points for different teams
+- Configuring lifecycle policies for cost optimization
+EOF
 }
