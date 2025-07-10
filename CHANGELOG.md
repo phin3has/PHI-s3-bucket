@@ -1,3 +1,19 @@
+# [1.2.0](https://github.com/phin3has/PHI-s3-bucket/compare/v1.1.2...v1.2.0) (2025-07-10)
+
+
+### Bug Fixes
+
+* address Checkov compliance issues ([6eb9c2c](https://github.com/phin3has/PHI-s3-bucket/commit/6eb9c2c9caf2171a6bde24ae50fceeb466767d52))
+* configure semantic-release for proper releases ([bd300c6](https://github.com/phin3has/PHI-s3-bucket/commit/bd300c641b0812c544f821f44fdf6f16c8b2b560))
+* terraform validate workflow for provider requirements ([e471afd](https://github.com/phin3has/PHI-s3-bucket/commit/e471afdfa318a582675d0d9f345aed6be67bc29f))
+* tweaking workflows after restructure ([37802ab](https://github.com/phin3has/PHI-s3-bucket/commit/37802ab71b1a9bdefb00376d2dd84b655dc66754))
+* workflow b0rked again ([c251bd1](https://github.com/phin3has/PHI-s3-bucket/commit/c251bd18eeff5e54db1b62b77e770a42461857de))
+
+
+### Features
+
+* cleaning up ([770ce99](https://github.com/phin3has/PHI-s3-bucket/commit/770ce99e802312871c1272141ef62e9bdf34ff93))
+
 # 1.0.0 (2025-07-09)
 
 
