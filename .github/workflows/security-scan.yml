@@ -7,9 +7,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '**/*.tf'
-      - '.github/workflows/security-scan.yml'
 
 env:
   AWS_DEFAULT_REGION: us-east-1
