@@ -1,4 +1,6 @@
 # Data sources
+# checkov:skip=CKV_AWS_145:Encryption is configured in main.tf
+# checkov:skip=CKV2_AWS_6:Public access blocks are configured in main.tf
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
