@@ -52,6 +52,9 @@ skip-check:
   # S3 lifecycle configuration - not required for all buckets
   - CKV2_AWS_61
   
+  # Module source checks - examples use local paths for testing
+  - CKV_TF_1
+  
 # Framework to scan
 framework:
   - terraform

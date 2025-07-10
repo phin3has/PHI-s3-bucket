@@ -18,7 +18,9 @@ provider "aws" {
 
 # Use the module without replication
 module "secure_bucket" {
-  source = "github.com/phin3has/PHI-s3-bucket?ref=v1.0.0"
+  # For production, use a specific version tag or commit hash
+  # source = "github.com/phin3has/PHI-s3-bucket?ref=COMMIT_HASH"
+  source = "../../"  # For testing, use local path
   
   bucket_name    = var.bucket_name
   environment    = var.environment

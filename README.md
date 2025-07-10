@@ -25,7 +25,8 @@ This module implements the following security requirements:
 
 ```hcl
 module "secure_bucket" {
-  source = "github.com/phin3has/PHI-s3-bucket?ref=v1.0.0"
+  # Use a specific commit hash for production
+  source = "github.com/phin3has/PHI-s3-bucket?ref=4727688"
   
   bucket_name    = "my-secure-data-bucket"
   environment    = "prod"
@@ -52,7 +53,8 @@ module "secure_bucket" {
 
 ```hcl
 module "secure_bucket" {
-  source = "github.com/phin3has/PHI-s3-bucket?ref=v1.0.0"
+  # Use a specific commit hash for production
+  source = "github.com/phin3has/PHI-s3-bucket?ref=4727688"
   
   bucket_name = "my-secure-bucket"
   environment = "prod"
@@ -70,7 +72,8 @@ module "secure_bucket" {
 
 ```hcl
 module "secure_bucket" {
-  source = "github.com/phin3has/PHI-s3-bucket?ref=v1.0.0"
+  # Use a specific commit hash for production
+  source = "github.com/phin3has/PHI-s3-bucket?ref=4727688"
   
   bucket_name = "compliance-data-bucket"
   environment = "prod"
@@ -92,6 +95,23 @@ module "secure_bucket" {
 |------|---------|
 | terraform | >= 1.6.0 |
 | aws | >= 5.0 |
+
+## Provider Configuration
+
+**Important**: This module requires two AWS providers to be configured:
+
+```hcl
+provider "aws" {
+  region = "us-east-1"  # Primary region
+}
+
+provider "aws" {
+  alias  = "replica"
+  region = "us-west-2"  # Replication region (can be same as primary if not using replication)
+}
+```
+
+Both providers must be passed to the module, even if replication is disabled:
 
 ## Inputs
 
