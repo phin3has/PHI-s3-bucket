@@ -1,6 +1,4 @@
 # Requirement 7: Cross-region replication
-# This file handles replication configuration when enabled
-# Note: Requires aws.replica provider to be configured when enable_replication = true
 
 # IAM role for replication
 resource "aws_iam_role" "replication" {
@@ -71,7 +69,7 @@ data "aws_iam_policy_document" "replication" {
       "s3:ReplicateTags"
     ]
     
-    resources = ["${aws_s3_bucket.main.arn}/*"]
+    resources = ["${aws_s3_bucket.replica[0].arn}/*"]
   }
 
   statement {
@@ -84,11 +82,105 @@ data "aws_iam_policy_document" "replication" {
     
     resources = [var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.bucket[0].arn]
   }
+
+  statement {
+    effect = "Allow"
+    
+    actions = [
+      "kms:Encrypt",
+      "kms:GenerateDataKey"
+    ]
+    
+    resources = [aws_kms_key.replica[0].arn]
+  }
 }
 
-# Replication configuration (without creating replica bucket)
+# Replica bucket in different region
+# checkov:skip=CKV_AWS_145:Encryption is configured via separate aws_s3_bucket_server_side_encryption_configuration resource
+resource "aws_s3_bucket" "replica" {
+  count    = var.enable_replication ? 1 : 0
+  provider = aws.replica
+
+  bucket = "${var.bucket_name}-replica"
+  
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-replica"
+      Type = "replica"
+    }
+  )
+}
+
+# Replica bucket versioning
+resource "aws_s3_bucket_versioning" "replica" {
+  count    = var.enable_replication ? 1 : 0
+  provider = aws.replica
+  
+  bucket = aws_s3_bucket.replica[0].id
+  
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Replica bucket public access block
+resource "aws_s3_bucket_public_access_block" "replica" {
+  count    = var.enable_replication ? 1 : 0
+  provider = aws.replica
+  
+  bucket = aws_s3_bucket.replica[0].id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# KMS key for replica bucket
+resource "aws_kms_key" "replica" {
+  count    = var.enable_replication ? 1 : 0
+  provider = aws.replica
+
+  description             = "KMS key for ${var.bucket_name} replica encryption"
+  deletion_window_in_days = 30
+  enable_key_rotation = true
+  
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-replica-kms-key"
+    }
+  )
+}
+
+resource "aws_kms_alias" "replica" {
+  count    = var.enable_replication ? 1 : 0
+  provider = aws.replica
+
+  name          = "alias/${var.bucket_name}-replica"
+  target_key_id = aws_kms_key.replica[0].key_id
+}
+
+# Replica bucket encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "replica" {
+  count    = var.enable_replication ? 1 : 0
+  provider = aws.replica
+  
+  bucket = aws_s3_bucket.replica[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.replica[0].arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+# Replication configuration
 resource "aws_s3_bucket_replication_configuration" "main" {
-  count = var.enable_replication && var.replica_bucket_arn != null ? 1 : 0
+  count = var.enable_replication ? 1 : 0
 
   role   = aws_iam_role.replication[0].arn
   bucket = aws_s3_bucket.main.id
@@ -104,14 +196,11 @@ resource "aws_s3_bucket_replication_configuration" "main" {
     filter {}
 
     destination {
-      bucket        = var.replica_bucket_arn
+      bucket        = aws_s3_bucket.replica[0].arn
       storage_class = "STANDARD_IA"
 
-      dynamic "encryption_configuration" {
-        for_each = var.replica_kms_key_arn != null ? [1] : []
-        content {
-          replica_kms_key_id = var.replica_kms_key_arn
-        }
+      encryption_configuration {
+        replica_kms_key_id = aws_kms_key.replica[0].arn
       }
     }
   }
