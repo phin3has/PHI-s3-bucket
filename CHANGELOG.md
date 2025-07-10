@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/phin3has/PHI-s3-bucket/compare/v1.2.1...v1.2.2) (2025-07-10)
+
+
+### Bug Fixes
+
+* sec scan ([7ccf7d0](https://github.com/phin3has/PHI-s3-bucket/commit/7ccf7d03afea5dfc2ad360501bb96708a6e462cd))
+
 ## [1.2.1](https://github.com/phin3has/PHI-s3-bucket/compare/v1.2.0...v1.2.1) (2025-07-10)
 
 
