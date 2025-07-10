@@ -1,0 +1,12 @@
+# Example provider configuration for testing/validation
+# This file is not used when the module is consumed, but helps with local validation
+# DO NOT USE IN PRODUCTION - Configure providers in your root module
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias  = "replica"
+  region = "us-west-2"
+}
