@@ -1,8 +1,8 @@
-# Basic PHI S3 Bucket Configuration
-# This example creates a HIPAA-compliant S3 bucket with all security features enabled
+# Basic Example - Secure S3 Bucket
 
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.6.0"
+  
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -20,150 +20,110 @@ provider "aws" {
   region = var.replication_region
 }
 
-module "phi_s3_bucket" {
-  source = "../../modules/s3-phi-bucket"
-
-  bucket_name  = var.bucket_name
-  environment  = var.environment
+# Example: Basic secure S3 bucket
+module "secure_s3_bucket" {
+  source = "../../"
   
-  # Enable all security features
-  enable_replication         = true
-  replication_region         = var.replication_region
-  enable_access_logging      = true
-  enable_lifecycle_rules     = true
-  enable_intelligent_tiering = true
-  versioning_enabled         = true
-  mfa_delete                 = false # Enable in production with MFA device
+  bucket_name    = var.bucket_name
+  environment    = var.environment
+  aws_region     = var.aws_region
+  project_name   = var.project_name
   
-  # Default lifecycle rules for cost optimization
-  lifecycle_rules = [
-    {
-      id                     = "archive-old-data"
-      enabled                = true
-      transition_days        = 90
-      transition_storage_class = "GLACIER"
-      noncurrent_version_expiration_days = 730
-    },
-    {
-      id                     = "delete-incomplete-uploads"
-      enabled                = true
-      prefix                 = ""
-      abort_incomplete_multipart_upload_days = 7
-    }
-  ]
+  # Security configuration
+  trusted_principal_arns = var.trusted_principal_arns
   
-  tags = merge(
-    var.common_tags,
-    {
-      Module      = "basic-example"
-      DataType    = "PHI"
-      Compliance  = "HIPAA"
-    }
-  )
-
+  # Replication configuration  
+  enable_replication = var.enable_replication
+  replication_region = var.replication_region
+  
+  # Optional features
+  enable_lifecycle_rules = true
+  enable_object_lock     = false
+  
+  tags = var.common_tags
+  
   providers = {
     aws         = aws
     aws.replica = aws.replica
   }
 }
 
-# Security Hub Integration
-module "security_hub" {
-  source = "../../modules/security-hub"
+# Example: IAM role that can access the bucket
+resource "aws_iam_role" "example_app" {
+  name = "${var.bucket_name}-app-role"
   
-  bucket_name  = module.phi_s3_bucket.bucket_id
-  bucket_arn   = module.phi_s3_bucket.bucket_arn
-  kms_key_arn  = module.phi_s3_bucket.kms_key_arn
-  environment  = var.environment
-  
-  enable_security_hub = true
-  enable_config       = true
-  enable_guardduty    = true
-  enable_macie        = true
-  
-  tags = var.common_tags
-}
-
-# Monitoring Integration
-module "monitoring" {
-  source = "../../modules/monitoring"
-  
-  bucket_name  = module.phi_s3_bucket.bucket_id
-  bucket_arn   = module.phi_s3_bucket.bucket_arn
-  environment  = var.environment
-  
-  enable_sns_notifications = true
-  notification_email       = var.notification_email
-  enable_cloudwatch_alarms = true
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
   
   tags = var.common_tags
 }
 
-# Variables
-variable "aws_region" {
-  description = "AWS region for the primary bucket"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "replication_region" {
-  description = "AWS region for the replica bucket"
-  type        = string
-  default     = "us-west-2"
-}
-
-variable "bucket_name" {
-  description = "Name of the S3 bucket"
-  type        = string
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "dev"
-}
-
-variable "notification_email" {
-  description = "Email for security notifications"
-  type        = string
-}
-
-variable "common_tags" {
-  description = "Common tags to apply to all resources"
-  type        = map(string)
-  default     = {
-    Project    = "PHI-Storage"
-    ManagedBy  = "Terraform"
-  }
+# Example: Policy to allow the role to access the bucket
+resource "aws_iam_role_policy" "bucket_access" {
+  name = "${var.bucket_name}-access"
+  role = aws_iam_role.example_app.id
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          module.secure_s3_bucket.bucket_arn,
+          "${module.secure_s3_bucket.bucket_arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = [module.secure_s3_bucket.kms_key_arn]
+      }
+    ]
+  })
 }
 
 # Outputs
 output "bucket_id" {
-  description = "The name of the PHI bucket"
-  value       = module.phi_s3_bucket.bucket_id
+  description = "The name of the S3 bucket"
+  value       = module.secure_s3_bucket.bucket_id
 }
 
 output "bucket_arn" {
-  description = "The ARN of the PHI bucket"
-  value       = module.phi_s3_bucket.bucket_arn
+  description = "The ARN of the S3 bucket"
+  value       = module.secure_s3_bucket.bucket_arn
 }
 
-output "kms_key_id" {
-  description = "The KMS key ID used for encryption"
-  value       = module.phi_s3_bucket.kms_key_id
+output "kms_key_arn" {
+  description = "The ARN of the KMS key"
+  value       = module.secure_s3_bucket.kms_key_arn
 }
 
 output "replica_bucket_id" {
   description = "The name of the replica bucket"
-  value       = module.phi_s3_bucket.replica_bucket_id
+  value       = module.secure_s3_bucket.replica_bucket_id
 }
 
-output "security_dashboard_url" {
-  description = "URL to the CloudWatch security dashboard"
-  value       = module.monitoring.dashboard_url
-}
-
-output "compliance_status" {
-  description = "Compliance services status"
-  value       = module.security_hub.compliance_status
+output "example_role_arn" {
+  description = "ARN of the example IAM role"
+  value       = aws_iam_role.example_app.arn
 }
