@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/phin3has/PHI-s3-bucket/compare/v1.2.0...v1.2.1) (2025-07-10)
+
+
+### Bug Fixes
+
+* cleaning up workflows ([5b45a14](https://github.com/phin3has/PHI-s3-bucket/commit/5b45a143b2e3c3c0b9a5cc1b399ff8c88b3e6e91))
+
 # [1.2.0](https://github.com/phin3has/PHI-s3-bucket/compare/v1.1.2...v1.2.0) (2025-07-10)
 
 
